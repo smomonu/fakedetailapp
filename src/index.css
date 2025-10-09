@@ -166,4 +166,25 @@
   }
 
   /* duplicate rules removed (final refined rules present earlier) */
+
+  /* WhatsApp messages background */
+  .whatsapp-messages-bg {
+    background-color: #e5ddd5;
+    background-image:
+      repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 10px,
+        rgba(0, 0, 0, 0.02) 10px,
+        rgba(0, 0, 0, 0.02) 20px
+      ),
+      repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent 10px,
+        rgba(0, 0, 0, 0.02) 10px,
+        rgba(0, 0, 0, 0.02) 20px
+      );
+    background-size: 20px 20px;
+  }
 }

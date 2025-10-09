@@ -505,6 +505,8 @@ const WhatsAppGenerator: React.FC = () => {
   const recordingAutoScrollRef = React.useRef<boolean>(false);
   // long-press timer ref for mobile touch -> open context menu
   const touchTimerRef = React.useRef<number | null>(null);
+  // screenshot loading state
+  const [isCapturingScreenshot, setIsCapturingScreenshot] = useState(false);
 
   // inline edit state for selected chat name
   const [editingName, setEditingName] = useState(false);
@@ -933,7 +935,12 @@ const WhatsAppGenerator: React.FC = () => {
     const imgs = el.querySelectorAll('img');
     imgs.forEach((img:any) => {
       try {
-        if (img && img.src && !img.src.startsWith('data:')) img.crossOrigin = 'anonymous';
+        if (img && img.src && !img.src.startsWith('data:') && !img.src.startsWith('blob:')) {
+          img.crossOrigin = 'anonymous';
+          if (!img.complete) {
+            img.src = img.src;
+          }
+        }
       } catch (_e) {}
     });
   }
@@ -1228,24 +1235,67 @@ const WhatsAppGenerator: React.FC = () => {
               <button
                 onClick={async () => {
                   if (!fullChatRef.current) return;
-                  ensureImagesHaveCrossOrigin(fullChatRef.current);
-                  const scale = computeScaleForFullHD(fullChatRef.current);
-                  const canvas = await html2canvas(fullChatRef.current, { useCORS: true, scale });
-                  canvas.toBlob(blob => {
-                    if (!blob) return;
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    const chat = chats.find((c:any) => c.id === selectedChatId);
-                    a.download = `${(chat?.name || 'whatsapp')}-screenshot.png`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                  });
+                  setIsCapturingScreenshot(true);
+                  try {
+                    ensureImagesHaveCrossOrigin(fullChatRef.current);
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    const element = fullChatRef.current;
+                    const canvas = await html2canvas(element, {
+                      useCORS: true,
+                      allowTaint: false,
+                      backgroundColor: '#ffffff',
+                      scale: 2,
+                      logging: false,
+                      imageTimeout: 15000,
+                      removeContainer: false,
+                      foreignObjectRendering: false,
+                      width: element.offsetWidth,
+                      height: element.offsetHeight,
+                      windowWidth: element.scrollWidth,
+                      windowHeight: element.scrollHeight,
+                      scrollX: 0,
+                      scrollY: 0,
+                      x: 0,
+                      y: 0
+                    });
+                    canvas.toBlob(blob => {
+                      if (!blob) {
+                        alert('Screenshot generation failed. Please try again.');
+                        return;
+                      }
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      const chat = chats.find((c:any) => c.id === selectedChatId);
+                      a.download = `${(chat?.name || 'whatsapp')}-screenshot.png`;
+                      document.body.appendChild(a);
+                      a.click();
+                      setTimeout(() => {
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                      }, 100);
+                    }, 'image/png', 1.0);
+                  } catch (error) {
+                    console.error('Screenshot failed:', error);
+                    alert('Screenshot failed. Please try again or check browser console.');
+                  } finally {
+                    setIsCapturingScreenshot(false);
+                  }
                 }}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                disabled={isCapturingScreenshot}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Download className="w-4 h-4" />
-                <span>Screenshot</span>
+                {isCapturingScreenshot ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Capturing...</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4" />
+                    <span>Screenshot</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -1391,11 +1441,8 @@ const WhatsAppGenerator: React.FC = () => {
                       {/* Messages Area */}
                       <div
                         ref={messagesContainerRef}
-                        className="flex-1 overflow-y-auto p-4 space-y-2"
+                        className="flex-1 overflow-y-auto p-4 space-y-2 whatsapp-messages-bg"
                         style={{
-                          backgroundImage: 'url(/images/fakdetail-app-whatsapp-background.jpg)',
-                          backgroundSize: 'cover',
-                          backgroundPosition: 'center',
                           backgroundColor: '#e5ddd5'
                         }}
                       >
