@@ -27,6 +27,7 @@ import PasswordGenerator from './components/PasswordGenerator';
 import AddressGenerator from './components/AddressGenerator';
 import CompanyNameGenerator from './components/CompanyGenerator';
 import AestheticNameGenerator from './components/AestheticNameGenerator';
+import WhatsappChatGenerator from './components/WhatsappChatGenerator';
 
 import Generators from './components/Generators';
 import About from './components/About';
@@ -68,6 +69,7 @@ function App() {
          <Route path="/aesthetic-name-generator" element={<AestheticNameGenerator />} />
          <Route path="/imei-number-generator" element={<IMEINumberGenerator />} />
          <Route path="/personality-generator" element={<PersonalityGenerator />} />
+         <Route path="/whatsapp-chat-generator" element={<WhatsappChatGenerator />} />
 
          <Route path="/generators" element={<Generators />} />
          <Route path="/privacy" element={<PrivacyPolicy />} />
